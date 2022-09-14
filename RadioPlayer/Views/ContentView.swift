@@ -7,54 +7,52 @@ struct ContentView: View {
     @EnvironmentObject var network: NetworkManager
     @State var player: AVPlayer?
     @State var activeStation: Station = Station.defaultValue()
+    @State var stations: [Station] = []
 
     @State private var searchText = ""
 
     var body: some View {
         NavigationView {
             VStack {
-                Text(activeStation.name ?? "")
-                    .font(.title)
-                    .frame(alignment: .center)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                HStack {
-                    Spacer()
-
-                    Button(action: {
-                        loadRadio()
-                    }) {
-                        Image(systemName: "play.circle.fill").resizable()
-                            .frame(width: 50, height: 50)
-                            .aspectRatio(contentMode: .fit)
-                    }
-                    Spacer()
-                    Button(action: {
-                        player?.pause()
-                    }) {
-                        Image(systemName: "pause.circle.fill").resizable()
-                            .frame(width: 50, height: 50)
-                            .aspectRatio(contentMode: .fit)
-                    }
-                    Spacer()
-                    Button {
-                        player?.pause()
-                        activeStation = network.stations[Int.random(in: 1 ..< network.stations.count)]
-                        loadRadio()
-                    } label: {
-                        Image(systemName: "arrow.counterclockwise.circle.fill")
-                            .resizable()
-                            .frame(maxWidth: 50, maxHeight: 50)
-                            .aspectRatio(contentMode: .fill)
-                    }
-                    Spacer()
-                }
-
-                Spacer()
-
                 ScrollView {
+                    Text(activeStation.name ?? "")
+                        .font(.title)
+                        .frame(alignment: .center)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    HStack {
+                        Spacer()
+
+                        Button(action: {
+                            loadRadio()
+                        }) {
+                            Image(systemName: "play.circle.fill").resizable()
+                                .frame(width: 50, height: 50)
+                                .aspectRatio(contentMode: .fit)
+                        }
+                        Spacer()
+                        Button(action: {
+                            player?.pause()
+                        }) {
+                            Image(systemName: "pause.circle.fill").resizable()
+                                .frame(width: 50, height: 50)
+                                .aspectRatio(contentMode: .fit)
+                        }
+                        Spacer()
+                        Button {
+                            player?.pause()
+                            activeStation = network.stations[Int.random(in: 1 ..< network.stations.count)]
+                            loadRadio()
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise.circle.fill")
+                                .resizable()
+                                .frame(maxWidth: 50, maxHeight: 50)
+                                .aspectRatio(contentMode: .fill)
+                        }
+                        Spacer()
+                    }
                     LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(network.stations, id: \.stationuuid) { station in
+                        ForEach(stations, id: \.stationuuid) { station in
                             Button {
                                 player?.pause()
                                 activeStation = station
@@ -63,17 +61,17 @@ struct ContentView: View {
                                 VStack(alignment: .leading) {
                                     HStack() {
                                         if let url = URL(string: station.favicon ?? "") {
-                                            AsyncImage(
-                                                url: url,
-                                                content: { image in
+                                            AsyncImage(url: url) { phases in
+                                                switch phases {
+                                                case .success(let image):
                                                     image.resizable()
                                                         .aspectRatio(contentMode: .fill)
                                                         .frame(maxWidth: 100)
-                                                },
-                                                placeholder: {
-                                                    ProgressView()
+
+                                                default:
+                                                    Image(systemName: "xmark.octagon")
                                                 }
-                                            )
+                                            }
                                         }
 
                                         Text(station.name ?? "")
@@ -90,17 +88,26 @@ struct ContentView: View {
                     }
                 }
             }.navigationTitle("Сейчас играет")
-                .navigationBarTitleDisplayMode(.inline)
         }.onAppear {
             network.getStations {
+                stations = network.stations
                 activeStation = network.stations[Int.random(in: 1 ..< network.stations.count)]
                 loadRadio()
             }
-        }.searchable(text: $searchText)
+        }.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+            .onChange(of: searchText) { searchText in
+                if !searchText.isEmpty {
+                    stations = stations.filter {
+                        $0.name?.contains(searchText) ?? false
+                    }
+                } else {
+                    stations = network.stations
+                }
+            }
 
     }
 
-    func getStations() {
+    func filtering() {
 
     }
 
