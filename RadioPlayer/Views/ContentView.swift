@@ -98,7 +98,8 @@ struct ContentView: View {
             .onChange(of: searchText) { searchText in
                 if !searchText.isEmpty {
                     stations = stations.filter {
-                        $0.name?.contains(searchText) ?? false
+                        $0.name?.contains(searchText) ?? false ||
+                        $0.tags?.contains(searchText) ?? false
                     }
                 } else {
                     stations = network.stations
